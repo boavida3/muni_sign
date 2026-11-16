@@ -1,0 +1,20 @@
+[Unit]
+Description=muni_sign: Muni arrival board on an LED panel
+# Start once the network is up, so the first fetch can reach 511.org
+Wants=network-online.target
+After=network-online.target time-sync.target
+
+[Service]
+# /home/pi/muni_sign is a placeholder: install this file with the sed command in README.md,
+# which replaces it with the folder you cloned the repo into.
+# Runs as root because the LED library needs direct hardware access;
+# it drops to an unprivileged user by itself once the panel is set up.
+ExecStart=/home/pi/muni_sign/venv/bin/python /home/pi/muni_sign/muni_board.py
+WorkingDirectory=/home/pi/muni_sign
+Restart=always
+RestartSec=10
+# Make Python print log lines immediately, so journalctl shows them in real time
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

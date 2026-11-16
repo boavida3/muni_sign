@@ -1,0 +1,11 @@
+# Private settings: 511 API key and stop code. Never commit this.
+.env
+
+# Local tools and environments
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# The LED library is a separate project (GPL-2.0-or-later); clone it, don't commit it.
+rpi-rgb-led-matrix/
