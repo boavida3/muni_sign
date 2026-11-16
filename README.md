@@ -4,7 +4,7 @@ A home arrival board for San Francisco Muni: a Raspberry Pi and a 64×32 LED pan
 the next three trains at your stop, from the [511.org](https://511.org/open-data/transit)
 real-time API. The text rotates between Korean, Portuguese and English.
 
-<img src="docs/sign.jpg" width="480" alt="The sign showing the next J Church trains to downtown (Centro): 13, 32 and 52 minutes">
+<img src="docs/sign.jpg" width="400" alt="The sign showing the next J Church trains to downtown (Centro): 13, 32 and 52 minutes">
 
 ## Hardware
 
