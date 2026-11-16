@@ -2,8 +2,7 @@
 """muni_sign: real-time SF Muni arrivals on a 64x32 RGB LED panel driven by a Raspberry Pi.
 
 Shows the next three trains of one line at one stop, using the 511.org real-time API.
-The text rotates between Korean, Portuguese and English. An optional short screen
-can show where the code lives (GITHUB_USER, off by default).
+The text rotates between Korean, Portuguese and English.
 
 Normally runs as the muni-board systemd service (see README.md):
     sudo systemctl restart muni-board     # after editing this file
@@ -13,8 +12,7 @@ Test without the panel (prints to the terminal instead; safe while the service r
 
 Private settings (511 API key, stop code) are read from .env next to this file, never from
 the code. See .env.example.
-Fonts: Galmuri pixel fonts (SIL Open Font License, see fonts/Galmuri-LICENSE.txt) and the
-tom-thumb font that ships with rpi-rgb-led-matrix.
+Fonts: Galmuri pixel fonts (SIL Open Font License, see fonts/Galmuri-LICENSE.txt).
 """
 import argparse
 import collections
@@ -32,10 +30,6 @@ LINE = "J"                   # only show this line (stop code comes from .env)
 REFRESH_SECONDS = 75         # 511 allows 60 requests/hour per key; 75 s = 48/hour
 LANGUAGE_SECONDS = 8         # how long each language stays on screen
 ARROW = "left"               # direction arrow in the top row: "left", "right" or None
-# GitHub screen, once per rotation: where the code lives.
-GITHUB_USER = None           # e.g. "boavida3": adds a github.com/<user> screen; None = off
-GITHUB_SECONDS = 5           # how long it shows (it hides the train times meanwhile)
-GITHUB_SKIP_WITHIN = 1       # skip it while a train is this many minutes away or less
 MAX_ARRIVALS = 3
 BRIGHTNESS = 50              # 1-100
 LINE_COLOR = (250, 160, 30)  # J Church orange
@@ -58,7 +52,6 @@ LANGUAGES = [
 HOME = Path(__file__).resolve().parent      # the folder this file is in
 ENV_FILE = HOME / ".env"
 FONT_DIR = HOME / "fonts"
-LIB_FONT_DIR = HOME / "rpi-rgb-led-matrix" / "fonts"
 API_URL = "https://api.511.org/transit/StopMonitoring"
 PANEL_W, PANEL_H = 64, 32
 # Accuracy safeguards: people rely on this board, so show "no data" rather than doubtful times.
@@ -86,9 +79,6 @@ ARROW_LEFT = [
 # Baselines (y of the row just below the letters), measured from the glyphs:
 BADGE_LETTER_BASELINE = 10    # Galmuri9 "J" inside the badge: rows 1-9
 HEADER_BASELINE = 9           # Galmuri7 destination: rows 2-8, centred on the badge
-# GitHub screen: github.com/<user> in the tiny tom-thumb font, two centred lines
-# in capitals (one line is 76 px, wider than the panel): rows 10-14 and rows 18-22
-GITHUB_BASELINES = (15, 23)
 NUMBER_BASELINE = 24          # Galmuri11 digits: rows 13-23
 UNIT_BASELINE = 32            # Galmuri7 "min"/"분": rows 25-31
 STATUS_BASELINE = 24          # status messages, centred in the lower area
@@ -200,35 +190,15 @@ def upcoming(arrivals):
     return trains[:MAX_ARRIVALS]
 
 
-def rotation():
-    """The screens to cycle through, as (screen, seconds): every language, then a short
-    screen with the GitHub URL on its own (no train times)."""
-    slots = [(lang, LANGUAGE_SECONDS) for lang in LANGUAGES]
-    if GITHUB_USER:
-        slots.append((dict(LANGUAGES[-1], label=f"github.com/{GITHUB_USER}", github=True),
-                      GITHUB_SECONDS))
-    return slots
-
-
-def current_screen(slots, elapsed, trains):
-    """Which screen to show `elapsed` seconds after start. The GitHub screen is replaced
-    by the English one while a train is about to arrive, so nobody misses it."""
-    t = elapsed % sum(seconds for _, seconds in slots)
-    for screen, seconds in slots:
-        if t < seconds:
-            break
-        t -= seconds
-    if screen.get("github") and trains and trains[0]["min"] <= GITHUB_SKIP_WITHIN:
-        return LANGUAGES[-1]
-    return screen
+def current_language(elapsed):
+    """The language to show `elapsed` seconds after start (each stays LANGUAGE_SECONDS)."""
+    return LANGUAGES[int(elapsed // LANGUAGE_SECONDS) % len(LANGUAGES)]
 
 
 def describe(lang, trains, status):
     """One-line text version of the board, for the --print terminal output.
     Untracked (schedule-only) times are shown with a leading ~."""
     label = lang["label"]
-    if lang.get("github"):
-        return f"{label} (GitHub screen, no times)"
     if status:
         return f"{label}: {lang[status]}"
     return f"{label}: " + "  ".join(
@@ -247,8 +217,7 @@ class Panel:
         self.fonts = {}
         for name, path in (("Galmuri7", FONT_DIR / "Galmuri7.bdf"),
                            ("Galmuri9", FONT_DIR / "Galmuri9.bdf"),
-                           ("Galmuri11", FONT_DIR / "Galmuri11.bdf"),
-                           ("tom-thumb", LIB_FONT_DIR / "tom-thumb.bdf")):  # tiny GitHub text
+                           ("Galmuri11", FONT_DIR / "Galmuri11.bdf")):
             font = graphics.Font()
             font.LoadFont(str(path))
             self.fonts[name] = font
@@ -302,23 +271,10 @@ class Panel:
                 self.canvas.SetPixel(x, y, *LINE_COLOR)
         self.centred("Galmuri9", badge_x, BADGE + 1, BADGE_LETTER_BASELINE, (0, 0, 0), LINE)
 
-    def draw_github(self):
-        """The GitHub screen: GITHUB.COM/ and the username, tiny and centred. Capitals use
-        the font's full 5-px height, so they read better than lowercase on the LEDs (the
-        address works either way: domains and GitHub usernames are case-insensitive)."""
-        for baseline, line in zip(GITHUB_BASELINES, ("github.com/", GITHUB_USER)):
-            self.centred("tom-thumb", 0, PANEL_W, baseline, LINE_COLOR, line.upper())
-
     def draw(self, lang, trains, status):
         mins = [t["min"] for t in trains]
         c = self.canvas
         c.Clear()
-
-        if lang.get("github"):
-            self.draw_github()
-            self.canvas = self.matrix.SwapOnVSync(c)
-            return
-
         self.draw_header(lang)
 
         if status:
@@ -356,7 +312,6 @@ def main():
 
     key, stop_code = load_settings()         # read .env before the panel drops privileges
     panel = None if args.print else Panel()
-    slots = rotation()
 
     arrivals, last_ok, error = [], None, None
     next_fetch, shown = 0.0, None
@@ -414,7 +369,7 @@ def main():
             else:
                 status = None
 
-            lang = current_screen(slots, now - started, trains)
+            lang = current_language(now - started)
             if args.print:
                 current = describe(lang, trains, status)
                 if current != shown:
