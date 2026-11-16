@@ -2,7 +2,7 @@
 """muni_sign: real-time SF Muni arrivals on a 64x32 RGB LED panel driven by a Raspberry Pi.
 
 Shows the next three trains of one line at one stop, using the 511.org real-time API.
-The text rotates between Korean, Portuguese, Spanish and English. An optional short screen
+The text rotates between Korean, Portuguese and English. An optional short screen
 can show where the code lives (GITHUB_USER, off by default).
 
 Normally runs as the muni-board systemd service (see README.md):
@@ -50,8 +50,6 @@ LANGUAGES = [
      "no_data": "데이터 없음", "no_trains": "운행 없음", "key_error": "키 오류"},
     {"code": "pt", "label": "Centro", "unit": "min", "loading": "Carregando",
      "no_data": "Sem dados", "no_trains": "Sem trens", "key_error": "Erro de chave"},
-    {"code": "es", "label": "Centro", "unit": "min", "loading": "Cargando",
-     "no_data": "Sin datos", "no_trains": "Sin trenes", "key_error": "Error de clave"},
     {"code": "en", "label": "Downtown", "unit": "min", "loading": "Loading",
      "no_data": "No data", "no_trains": "No trains", "key_error": "Key error"},
 ]

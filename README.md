@@ -6,7 +6,7 @@ from the [511.org Open Data API](https://511.org/open-data/transit).
 
 ![The sign showing the next J Church trains to downtown: 12, 30 and 50 minutes](docs/sign.jpg)
 
-- The text rotates between **Korean, Portuguese, Spanish and English** every 8 seconds.
+- The text rotates between **Korean, Portuguese and English** every 8 seconds.
   The numbers stay the same in every language, so anyone can read the times at a glance.
 - Built to be **trusted**, including by elderly neighbours:
   - Minutes are rounded **down**, like Muni's own signs, so it never says a train is further
